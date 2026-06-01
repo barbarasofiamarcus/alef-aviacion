@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0f0d">
+<title>Alef Aviación · Combustible</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0f0d;--bg2:#111a15;--bg3:#162019;--bg4:#1c2b20;--surface:#1e2b22;
+  --green:#2ecc8a;--green2:#1a9e68;--green3:#0f6e48;--green-glow:rgba(46,204,138,0.15);
+  --text:#e8f2ec;--text2:#8aab96;--text3:#4d6b57;
+  --border:rgba(46,204,138,0.12);--border2:rgba(46,204,138,0.22);
+  --red:#e05555;--amber:#e0a040;--blue:#80b3ff;--purple:#c88cff;
+  --radius:10px;--radius-lg:14px;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(46,204,138,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(46,204,138,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.app{max-width:520px;margin:0 auto;min-height:100vh;position:relative;z-index:1}
+.topbar{padding:16px 18px 12px;border-bottom:0.5px solid var(--border);background:rgba(10,15,13,0.92);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.logo{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.5px;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.logo::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);display:inline-block}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);margin-left:auto;transition:background .3s}
+.sync-dot.syncing{background:var(--amber);animation:pulse 1s infinite}
+.sync-dot.ok{background:var(--green)}
+.sync-dot.err{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.nav{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nb{font-family:var(--sans);font-size:12px;padding:6px 11px;border-radius:var(--radius);border:0.5px solid transparent;background:transparent;cursor:pointer;color:var(--text2);transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:5px;flex-shrink:0}
+.nb.active{background:var(--green-glow);border-color:var(--border2);color:var(--green);font-weight:500}
+.nb:hover:not(.active){background:var(--surface);color:var(--text)}
+.nb i{font-size:13px}
+.content{padding:16px 18px 80px}
+.section{display:none}.section.visible{display:block}
+.stitle{font-size:10px;font-family:var(--mono);letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:14px;padding-bottom:8px;border-bottom:0.5px solid var(--border)}
+.upload-zone{border:1px dashed var(--border2);border-radius:var(--radius-lg);padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg2);position:relative;overflow:hidden}
+.upload-zone::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 100%,var(--green-glow),transparent 70%);opacity:0;transition:opacity .3s}
+.upload-zone:hover::before{opacity:1}
+.upload-zone:hover{border-color:var(--green);background:var(--bg3)}
+.upload-zone input{display:none}
+.uz-icon{font-size:32px;color:var(--text3);margin-bottom:8px;transition:color .2s}
+.upload-zone:hover .uz-icon{color:var(--green)}
+.pw{margin-top:12px;border-radius:var(--radius-lg);overflow:hidden;border:0.5px solid var(--border2);max-height:200px;display:flex;align-items:center;justify-content:center;background:var(--bg3)}
+.pw img{max-width:100%;max-height:200px;object-fit:contain}
+.status{border-radius:var(--radius);padding:9px 12px;font-size:12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-family:var(--mono)}
+.s-ok{background:rgba(46,204,138,0.1);color:var(--green);border:0.5px solid rgba(46,204,138,0.3)}
+.s-load{background:rgba(224,160,64,0.1);color:var(--amber);border:0.5px solid rgba(224,160,64,0.3)}
+.s-err{background:rgba(224,85,85,0.1);color:var(--red);border:0.5px solid rgba(224,85,85,0.3)}
+.spin{display:inline-block;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:10px}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.fl{font-size:10px;font-family:var(--mono);letter-spacing:.8px;color:var(--text3);text-transform:uppercase}
+input,select{font-family:var(--sans);font-size:13px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius);padding:8px 11px;color:var(--text);width:100%;outline:none;transition:all .2s;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-glow)}
+select option{background:var(--bg3)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+@media(max-width:380px){.row3{grid-template-columns:1fr 1fr}}
+.btn{font-family:var(--sans);font-size:12px;padding:7px 14px;border-radius:var(--radius);border:0.5px solid var(--border2);background:transparent;cursor:pointer;color:var(--text2);transition:all .2s;font-weight:500;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{background:var(--surface);color:var(--text)}
+.btn-g{background:var(--green);color:#0a0f0d;border-color:var(--green);font-weight:600}
+.btn-g:hover{background:var(--green2)}
+.btn-g:active{transform:scale(0.98)}
+.btn-d{color:var(--red);border-color:rgba(224,85,85,0.3)}
+.btn-d:hover{background:rgba(224,85,85,0.1)}
+.met-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px}
+.met{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.met-l{font-size:9px;font-family:var(--mono);color:var(--text3);margin-bottom:4px;letter-spacing:.6px;text-transform:uppercase}
+.met-v{font-size:16px;font-weight:500;font-family:var(--mono);color:var(--text)}
+.met-v.g{color:var(--green)}
+.met-v.a{color:var(--amber)}
+.mat{font-size:10px;font-family:var(--mono);font-weight:500;padding:2px 8px;border-radius:6px;white-space:nowrap;letter-spacing:.4px}
+.m089{background:rgba(224,85,85,0.12);color:#f08080;border:0.5px solid rgba(224,85,85,0.2)}
+.m116{background:rgba(46,204,138,0.12);color:var(--green);border:0.5px solid rgba(46,204,138,0.2)}
+.m153{background:rgba(128,179,255,0.12);color:var(--blue);border:0.5px solid rgba(128,179,255,0.2)}
+.mlzj{background:rgba(200,140,255,0.12);color:var(--purple);border:0.5px solid rgba(200,140,255,0.2)}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius-lg);border:0.5px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;font-size:9px;font-weight:500;font-family:var(--mono);color:var(--text3);border-bottom:0.5px solid var(--border);background:var(--bg3);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+td{padding:9px 10px;border-bottom:0.5px solid var(--border);vertical-align:middle;background:var(--bg2)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+.avcard{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:10px}
+.bar-wrap{background:var(--bg4);border-radius:4px;height:6px;overflow:hidden;flex:1;min-width:60px}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.conf-tip{font-size:11px;color:var(--text2);margin-bottom:12px;padding:8px 12px;background:var(--bg3);border-radius:var(--radius);border-left:2px solid var(--green);font-family:var(--mono)}
+.price-banner{background:rgba(46,204,138,0.08);border:0.5px solid rgba(46,204,138,0.25);border-radius:var(--radius);padding:9px 13px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px}
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:12px;font-family:var(--mono)}
+.empty i{font-size:28px;display:block;margin-bottom:10px}
+.frow{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.frow select{width:auto;min-width:130px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bar-val{font-size:11px;color:var(--text2);white-space:nowrap;min-width:56px;text-align:right;font-family:var(--mono)}
+.rk-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.rk-n{font-size:11px;color:var(--text3);font-family:var(--mono);width:14px}
+.divider{border:none;border-top:0.5px solid var(--border);margin:16px 0}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="logo">
+      ALEF <span style="color:var(--text2)">AVIACIÓN</span> · <span style="color:var(--text3)">COMBUSTIBLE</span>
+      <span class="sync-dot" id="sync-dot" title="Estado sincronización"></span>
+    </div>
+    <nav class="nav">
+      <button class="nb active" onclick="go('cargar')"><i class="ti ti-camera-up"></i> Cargar</button>
+      <button class="nb" onclick="go('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+      <button class="nb" onclick="go('historial')"><i class="ti ti-list"></i> Historial</button>
+      <button class="nb" onclick="go('por-avion')"><i class="ti ti-plane"></i> Por avión</button>
+      <button class="nb" onclick="go('config')"><i class="ti ti-settings"></i> Config</button>
+    </nav>
+  </div>
+
+  <div class="content">
+
+    <!-- CARGAR -->
+    <div id="sec-cargar" class="section visible">
+      <div class="stitle">Nueva carga de combustible</div>
+      <div id="price-banner" class="price-banner" style="display:none">
+        <i class="ti ti-gas-station" style="font-size:16px;color:var(--green)"></i>
+        <div>Precio configurado: <strong id="banner-precio" style="color:var(--green);font-family:var(--mono)"></strong> <span style="color:var(--text2)">· se aplica automáticamente</span></div>
+      </div>
+      <div class="upload-zone" onclick="document.getElementById('file-in').click()">
+        <input type="file" id="file-in" accept="image/*" onchange="onFile(event)">
+        <div class="uz-icon"><i class="ti ti-photo"></i></div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:4px">Subir foto del surtidor</div>
+        <div style="font-size:12px;color:var(--text2)">Medidor TUTHILL · La IA lee los datos</div>
+      </div>
+      <div id="pw" class="pw" style="display:none"></div>
+      <div id="ai-status" style="margin-top:12px;display:none"></div>
+      <div id="form-area" style="display:none"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="sec-dashboard" class="section"><div id="dash-content"></div></div>
+
+    <!-- HISTORIAL -->
+    <div id="sec-historial" class="section"><div id="hist-content"></div></div>
+
+    <!-- POR AVION -->
+    <div id="sec-por-avion" class="section"><div id="avion-content"></div></div>
+
+    <!-- CONFIG -->
+    <div id="sec-config" class="section">
+      <div class="stitle">Configuración</div>
+      <div class="card">
+        <div class="fg">
+          <div class="fl">Precio por litro por defecto ($)</div>
+          <input type="number" id="cfg-precio" placeholder="ej: 1250.00" step="0.01">
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--mono)">Se usa cuando la foto no trae el precio.</div>
+        </div>
+        <div class="fg">
+          <div class="fl">Tipo de combustible por defecto</div>
+          <select id="cfg-tipo">
+            <option value="">— sin defecto —</option>
+            <option>AVGAS 100LL</option>
+            <option>JET A1</option>
+          </select>
+        </div>
+        <button class="btn btn-g" onclick="saveConfig()"><i class="ti ti-device-floppy"></i> Guardar</button>
+        <div id="cfg-ok" style="display:none;margin-top:10px" class="status s-ok"><i class="ti ti-check"></i> Guardado.</div>
+      </div>
+      <div class="card">
+        <div style="font-size:11px;font-family:var(--mono);color:var(--text3);line-height:1.9">
+          <div style="color:var(--green);margin-bottom:4px">// SINCRONIZACIÓN</div>
+          <div>Los datos se guardan en Google Sheets</div>
+          <div>en tiempo real. Todos los que usen</div>
+          <div>esta app ven el mismo historial.</div>
+          <div style="margin-top:8px"><button class="btn" style="font-size:11px;padding:5px 12px" onclick="syncFromSheets()"><i class="ti ti-refresh"></i> Sincronizar ahora</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:12px;font-weight:500;color:var(--red);margin-bottom:10px;font-family:var(--mono)">// ZONA DE PELIGRO</div>
+        <button class="btn btn-d" onclick="borrarTodo()"><i class="ti ti-trash"></i> Borrar todos los registros locales</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL='https://script.google.com/a/macros/comunidad.ub.edu.ar/s/AKfycbxiiGwTS1YIUNrQuCSuE61x4V5PVNvRPvT19bQi_YeRBHZtxFeLq3IJIrwViTOdmqjK7w/exec';
+const KEY='alef_v1';
+const CFG_KEY='alef_cfg';
+const AVIONES=['LV-S089','LV-S116','LV-S153','LV-LZJ'];
+const MAT_CL={'LV-S089':'m089','LV-S116':'m116','LV-S153':'m153','LV-LZJ':'mlzj'};
+const MAT_COLOR={'LV-S089':'#f08080','LV-S116':'#2ecc8a','LV-S153':'#80b3ff','LV-LZJ':'#c88cff'};
+
+let regs=JSON.parse(localStorage.getItem(KEY)||'[]');
+let cfg=JSON.parse(localStorage.getItem(CFG_KEY)||'{"precio":"","tipo":""}');
+let imgB64=null,imgMime=null;
+let weekChart=null;
+
+function save(){localStorage.setItem(KEY,JSON.stringify(regs));}
+function saveCfgLS(){localStorage.setItem(CFG_KEY,JSON.stringify(cfg));}
+function fnum(n,d=2){if(n==null||n===''||isNaN(n))return'—';return Number(n).toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function fmon(n){if(n==null||isNaN(n)||n==='')return'—';return'$'+Number(n).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function badge(m){return`<span class="mat ${MAT_CL[m]||''}">${m}</span>`;}
+
+function setSyncDot(state){
+  const d=document.getElementById('sync-dot');
+  d.className='sync-dot '+state;
+}
+
+/* ── SHEETS SYNC ── */
+async function syncFromSheets(){
+  setSyncDot('syncing');
+  try{
+    const r=await fetch(SCRIPT_URL+'?hoja=Cargas&accion=getAll');
+    const data=await r.json();
+    if(Array.isArray(data)&&data.length>0){
+      regs=data.map(row=>({
+        id:Number(row.id)||Date.now(),
+        mat:row.mat||'',
+        fecha:row.fecha||'',
+        litros:row.litros?parseFloat(row.litros):null,
+        precio:row.precio?parseFloat(row.precio):null,
+        importe:row.importe?parseFloat(row.importe):null,
+        tipo:row.tipo||'',
+        quien:row.quien||'',
+        obs:row.obs||'',
+        ts:row.ts||''
+      }));
+      regs.sort((a,b)=>b.id-a.id);
+      save();
+    }
+    setSyncDot('ok');
+    setTimeout(()=>setSyncDot(''),3000);
+  }catch(e){
+    setSyncDot('err');
+    setTimeout(()=>setSyncDot(''),4000);
+  }
+}
+
+async function appendToSheets(reg){
+  setSyncDot('syncing');
+  try{
+    await fetch(SCRIPT_URL,{
+      method:'POST',
+      body:JSON.stringify({hoja:'Cargas',accion:'append',registro:reg}),
+      headers:{'Content-Type':'text/plain'}
+    });
+    setSyncDot('ok');
+    setTimeout(()=>setSyncDot(''),3000);
+  }catch(e){
+    setSyncDot('err');
+    setTimeout(()=>setSyncDot(''),4000);
+  }
+}
+
+async function deleteFromSheets(id){
+  try{
+    await fetch(SCRIPT_URL,{
+      method:'POST',
+      body:JSON.stringify({hoja:'Cargas',accion:'delete',id:String(id)}),
+      headers:{'Content-Type':'text/plain'}
+    });
+  }catch(e){}
+}
+
+/* ── NAV ── */
+function go(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('visible'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('visible');
+  const idx={cargar:0,dashboard:1,historial:2,'por-avion':3,config:4};
+  document.querySelectorAll('.nb')[idx[id]].classList.add('active');
+  if(id==='cargar') updateBanner();
+  if(id==='dashboard') renderDash();
+  if(id==='historial') renderHist();
+  if(id==='por-avion') renderPorAvion();
+  if(id==='config') loadConfig();
+}
+
+function updateBanner(){
+  const b=document.getElementById('price-banner');
+  if(cfg.precio){b.style.display='flex';document.getElementById('banner-precio').textContent=fmon(cfg.precio)+'/L';}
+  else b.style.display='none';
+}
+
+function loadConfig(){
+  document.getElementById('cfg-precio').value=cfg.precio||'';
+  document.getElementById('cfg-tipo').value=cfg.tipo||'';
+}
+
+function saveConfig(){
+  cfg.precio=document.getElementById('cfg-precio').value;
+  cfg.tipo=document.getElementById('cfg-tipo').value;
+  saveCfgLS();
+  const ok=document.getElementById('cfg-ok');
+  ok.style.display='flex';
+  setTimeout(()=>ok.style.display='none',2000);
+}
+
+function borrarTodo(){
+  if(confirm('¿Borrar todos los registros locales?')){regs=[];save();alert('Listo.');}
+}
+
+/* ── UPLOAD + AI ── */
+function onFile(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    imgB64=ev.target.result.split(',')[1];
+    imgMime=file.type;
+    const pw=document.getElementById('pw');
+    pw.innerHTML=`<img src="${ev.target.result}" alt="Foto surtidor">`;
+    pw.style.display='flex';
+    document.getElementById('ai-status').style.display='block';
+    document.getElementById('form-area').style.display='none';
+    analyzeImage();
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzeImage(){
+  const st=document.getElementById('ai-status');
+  st.innerHTML=`<div class="status s-load"><i class="ti ti-loader spin"></i> Analizando imagen con IA…</div>`;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:800,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:imgMime,data:imgB64}},
+          {type:'text',text:`Analizá esta imagen. Puede ser foto de un medidor TUTHILL Series 800C, surtidor de aviones, o captura de WhatsApp con medidores.
+Respondé SOLO con JSON válido, sin backticks:
+{"matricula":"LV-XXXX si aparece, si no null","litros":número en TOTAL LITRES si aparece si no null,"importe_total":número si aparece si no null,"precio_por_litro":número si aparece si no null,"fecha":"YYYY-MM-DD si aparece si no null","tipo_combustible":"AVGAS 100LL o JET A1 si aparece si no null","observaciones":"datos adicionales relevantes si no null"}
+Si no es surtidor: {"error":"No es imagen de surtidor"}`}
+        ]}]
+      })
+    });
+    const data=await r.json();
+    const txt=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    let parsed;
+    try{parsed=JSON.parse(txt);}catch(e){parsed={error:'No se pudo parsear'};}
+    if(parsed.error){
+      st.innerHTML=`<div class="status s-err"><i class="ti ti-alert-circle"></i> ${parsed.error}. Completá manualmente.</div>`;
+      showForm({});
+    } else {
+      st.innerHTML=`<div class="status s-ok"><i class="ti ti-check"></i> Datos extraídos. Revisá y guardá.</div>`;
+      showForm(parsed);
+    }
+  }catch(err){
+    st.innerHTML=`<div class="status s-err"><i class="ti ti-alert-circle"></i> Error de conexión. Completá manualmente.</div>`;
+    showForm({});
+  }
+}
+
+function showForm(d){
+  const fa=document.getElementById('form-area');
+  fa.style.display='block';
+  const today=new Date().toISOString().split('T')[0];
+  const precioDefault=d.precio_por_litro||cfg.precio||'';
+  const tipoDefault=d.tipo_combustible||cfg.tipo||'';
+  const matOpts=AVIONES.map(m=>`<option value="${m}"${d.matricula===m?' selected':''}>${m}</option>`).join('');
+  fa.innerHTML=`<div class="card" style="margin-top:12px">
+    <div class="conf-tip">// Revisá los datos extraídos y corregí si es necesario</div>
+    <div class="row2">
+      <div class="fg"><div class="fl">Matrícula</div>
+        <select id="f-mat"><option value="">— seleccionar —</option>${matOpts}</select>
+      </div>
+      <div class="fg"><div class="fl">Fecha</div>
+        <input type="date" id="f-fecha" value="${d.fecha||today}">
+      </div>
+    </div>
+    <div class="row3">
+      <div class="fg"><div class="fl">Litros</div>
+        <input type="number" id="f-litros" value="${d.litros||''}" placeholder="0.00" step="0.01" oninput="calcImp()">
+      </div>
+      <div class="fg"><div class="fl">Precio/L ($)</div>
+        <input type="number" id="f-precio" value="${precioDefault}" placeholder="0.00" step="0.01" oninput="calcImp()">
+      </div>
+      <div class="fg"><div class="fl">Importe ($)</div>
+        <input type="number" id="f-importe" value="${d.importe_total||''}" placeholder="0.00" step="0.01">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="fg"><div class="fl">Tipo combustible</div>
+        <select id="f-tipo">
+          <option value="">—</option>
+          <option${tipoDefault==='AVGAS 100LL'?' selected':''}>AVGAS 100LL</option>
+          <option${tipoDefault==='JET A1'?' selected':''}>JET A1</option>
+        </select>
+      </div>
+      <div class="fg"><div class="fl">Cargó</div>
+        <input id="f-quien" placeholder="ej: Pablo Meneses">
+      </div>
+    </div>
+    <div class="fg"><div class="fl">Observaciones</div>
+      <input id="f-obs" value="${d.observaciones||''}" placeholder="Notas...">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+      <button class="btn" onclick="resetForm()">Cancelar</button>
+      <button class="btn btn-g" onclick="guardar()"><i class="ti ti-device-floppy"></i> Guardar</button>
+    </div>
+  </div>`;
+  calcImp();
+}
+
+function calcImp(){
+  const l=parseFloat(document.getElementById('f-litros')?.value||0);
+  const p=parseFloat(document.getElementById('f-precio')?.value||0);
+  if(l>0&&p>0) document.getElementById('f-importe').value=(l*p).toFixed(2);
+}
+
+function guardar(){
+  const mat=document.getElementById('f-mat').value;
+  const fecha=document.getElementById('f-fecha').value;
+  const litros=parseFloat(document.getElementById('f-litros').value)||null;
+  const precio=parseFloat(document.getElementById('f-precio').value)||null;
+  const importe=parseFloat(document.getElementById('f-importe').value)||null;
+  const tipo=document.getElementById('f-tipo').value;
+  const quien=document.getElementById('f-quien').value;
+  const obs=document.getElementById('f-obs').value;
+  if(!mat||!fecha){alert('Matrícula y fecha son obligatorias.');return;}
+  const reg={id:Date.now(),mat,fecha,litros,precio,importe,tipo,quien,obs,ts:new Date().toISOString()};
+  regs.unshift(reg);
+  save();
+  appendToSheets(reg);
+  document.getElementById('ai-status').innerHTML=`<div class="status s-ok"><i class="ti ti-circle-check"></i> Guardado · ${mat} · ${fnum(litros,1)} L · ${fmon(importe)}</div>`;
+  document.getElementById('form-area').style.display='none';
+  document.getElementById('pw').style.display='none';
+  document.getElementById('file-in').value='';
+  imgB64=null;
+}
+
+function resetForm(){
+  document.getElementById('ai-status').style.display='none';
+  document.getElementById('form-area').style.display='none';
+  document.getElementById('pw').style.display='none';
+  document.getElementById('file-in').value='';
+  imgB64=null;
+}
+
+/* ── DASHBOARD ── */
+function getMeses(){return[...new Set(regs.map(r=>r.fecha.substring(0,7)))].sort().reverse();}
+
+function renderDash(){
+  const el=document.getElementById('dash-content');
+  el.innerHTML='<div class="stitle">Dashboard mensual</div>';
+  if(!regs.length){el.innerHTML+=`<div class="empty"><i class="ti ti-chart-bar"></i>Sin registros aún.<br>Cargá la primera foto.</div>`;return;}
+  const meses=getMeses();
+  const mesAct=meses[0];
+  const selOpts=meses.map(m=>`<option value="${m}"${m===mesAct?' selected':''}>${formatMes(m)}</option>`).join('');
+  el.innerHTML+=`<div class="frow">
+    <select id="dash-mes" onchange="buildDash(this.value)" style="flex:1;max-width:160px">${selOpts}</select>
+    <button class="btn" style="font-size:11px;padding:5px 11px" onclick="syncFromSheets()"><i class="ti ti-refresh"></i> Sync</button>
+  </div>
+  <div id="dash-body"></div>`;
+  buildDash(mesAct);
+}
+
+function formatMes(ym){
+  const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const [y,m]=ym.split('-');
+  return meses[parseInt(m)-1]+' '+y;
+}
+
+function buildDash(mes){
+  const el=document.getElementById('dash-body');
+  if(!el)return;
+  const rs=regs.filter(r=>r.fecha.startsWith(mes));
+  const totL=rs.reduce((s,r)=>s+(r.litros||0),0);
+  const totI=rs.reduce((s,r)=>s+(r.importe||0),0);
+
+  // mes anterior
+  const meses=getMeses();
+  const idx=meses.indexOf(mes);
+  const mesAnt=meses[idx+1];
+  let vsAnt='';
+  if(mesAnt){
+    const rsAnt=regs.filter(r=>r.fecha.startsWith(mesAnt));
+    const totLAnt=rsAnt.reduce((s,r)=>s+(r.litros||0),0);
+    if(totLAnt>0){
+      const pct=Math.round((totL-totLAnt)/totLAnt*100);
+      vsAnt=`<div class="met"><div class="met-l">VS MES ANT.</div><div class="met-v ${pct>=0?'a':'g'}">${pct>=0?'+':''}${pct}%</div></div>`;
+    }
+  }
+
+  const avActivos=AVIONES.filter(m=>rs.some(r=>r.mat===m)).length;
+
+  // barras por avión
+  let barras='';
+  const avData=AVIONES.map(mat=>{
+    const mr=rs.filter(r=>r.mat===mat);
+    return{mat,lit:mr.reduce((s,r)=>s+(r.litros||0),0),imp:mr.reduce((s,r)=>s+(r.importe||0),0),n:mr.length};
+  }).filter(a=>a.lit>0).sort((a,b)=>b.lit-a.lit);
+
+  avData.forEach((a,i)=>{
+    const pct=totL>0?Math.round(a.lit/totL*100):0;
+    const color=MAT_COLOR[a.mat]||'#2ecc8a';
+    barras+=`<div class="bar-row">
+      <span style="min-width:64px">${badge(a.mat)}</span>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span class="bar-val">${fnum(a.lit,1)} L</span>
+    </div>`;
+  });
+
+  // litros por semana del mes
+  const semanas=['Sem 1','Sem 2','Sem 3','Sem 4'];
+  const litSem=[0,0,0,0];
+  rs.forEach(r=>{
+    const dia=parseInt((r.fecha||'').split('-')[2]||0);
+    const s=dia<=7?0:dia<=14?1:dia<=21?2:3;
+    litSem[s]+=(r.litros||0);
+  });
+
+  // ranking
+  let ranking='';
+  avData.forEach((a,i)=>{
+    const pct=totL>0?Math.round(a.lit/totL*100):0;
+    ranking+=`<div class="rk-row">
+      <span class="rk-n">${i+1}</span>
+      ${badge(a.mat)}
+      <span style="flex:1;font-size:11px;color:var(--text3);font-family:var(--mono);padding-left:4px">${pct}% del mes</span>
+      <span style="font-size:11px;color:var(--text2);font-family:var(--mono)">${fnum(a.lit,1)} L</span>
+    </div>`;
+  });
+
+  el.innerHTML=`
+  <div class="met-grid">
+    <div class="met"><div class="met-l">TOTAL LITROS</div><div class="met-v g">${fnum(totL,1)} L</div></div>
+    <div class="met"><div class="met-l">TOTAL GASTADO</div><div class="met-v g">${fmon(totI)}</div></div>
+    <div class="met"><div class="met-l">CARGAS</div><div class="met-v">${rs.length}</div></div>
+  </div>
+  <div class="met-grid" style="margin-bottom:18px">
+    <div class="met"><div class="met-l">COSTO PROM/L</div><div class="met-v">${totL>0?fmon(totI/totL):'—'}</div></div>
+    <div class="met"><div class="met-l">AVIONES ACTIVOS</div><div class="met-v">${avActivos}</div></div>
+    ${vsAnt||`<div class="met"><div class="met-l">MES</div><div class="met-v" style="font-size:12px">${formatMes(mes)}</div></div>`}
+  </div>
+
+  ${barras?`<div style="font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">Consumo por avión</div>${barras}`:''}
+
+  <hr class="divider">
+
+  <div style="font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">Litros por semana</div>
+  <div style="position:relative;width:100%;height:130px;margin-bottom:4px">
+    <canvas id="week-chart" role="img" aria-label="Litros por semana en ${formatMes(mes)}">${semanas.map((s,i)=>s+': '+fnum(litSem[i],1)+'L').join(', ')}</canvas>
+  </div>
+
+  <hr class="divider">
+
+  <div style="font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">Ranking del mes</div>
+  ${ranking||`<div style="font-size:12px;color:var(--text3);font-family:var(--mono)">Sin cargas este mes.</div>`}`;
+
+  // Chart
+  if(weekChart){weekChart.destroy();weekChart=null;}
+  const ctx=document.getElementById('week-chart');
+  if(ctx){
+    weekChart=new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:semanas,
+        datasets:[{
+          label:'Litros',
+          data:litSem.map(v=>Math.round(v*10)/10),
+          backgroundColor:'rgba(46,204,138,0.2)',
+          borderColor:'#2ecc8a',
+          borderWidth:1,
+          borderRadius:4
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{ticks:{color:'#4d6b57',font:{size:10}},grid:{color:'rgba(46,204,138,0.06)'},border:{color:'transparent'}},
+          y:{ticks:{color:'#4d6b57',font:{size:10},callback:v=>v+'L'},grid:{color:'rgba(46,204,138,0.06)'},border:{color:'transparent'}}
+        }
+      }
+    });
+  }
+}
+
+/* ── HISTORIAL ── */
+function renderHist(){
+  const el=document.getElementById('hist-content');
+  el.innerHTML='<div class="stitle">Historial de cargas</div>';
+  if(!regs.length){el.innerHTML+=`<div class="empty"><i class="ti ti-inbox"></i>Sin registros.</div>`;return;}
+  const opts=AVIONES.map(m=>`<option value="${m}">${m}</option>`).join('');
+  el.innerHTML+=`<div class="frow">
+    <select id="fil-mat" onchange="fillHist()" style="flex:1;max-width:150px"><option value="">Todos</option>${opts}</select>
+    <button class="btn" style="font-size:11px;padding:5px 11px" onclick="exportCSV()"><i class="ti ti-download"></i> CSV</button>
+    <button class="btn" style="font-size:11px;padding:5px 11px" onclick="syncFromSheets()"><i class="ti ti-refresh"></i></button>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Fecha</th><th>Avión</th><th>Litros</th><th>Importe</th><th>Cargó</th><th></th></tr></thead>
+    <tbody id="hist-tbody"></tbody>
+  </table></div>`;
+  fillHist();
+}
+
+function fillHist(){
+  const fil=document.getElementById('fil-mat')?.value||'';
+  const rows=fil?regs.filter(r=>r.mat===fil):regs;
+  document.getElementById('hist-tbody').innerHTML=rows.map(r=>`<tr>
+    <td style="white-space:nowrap;font-family:var(--mono);font-size:11px">${r.fecha}</td>
+    <td>${badge(r.mat)}</td>
+    <td style="font-family:var(--mono)">${fnum(r.litros,1)} L</td>
+    <td style="font-weight:500;font-family:var(--mono);color:var(--green)">${fmon(r.importe)}</td>
+    <td style="font-size:11px;color:var(--text2)">${r.quien||'—'}</td>
+    <td><button class="btn btn-d" style="font-size:11px;padding:3px 7px" onclick="del(${r.id})"><i class="ti ti-trash"></i></button></td>
+  </tr>`).join('')||`<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3);font-family:var(--mono)">Sin registros.</td></tr>`;
+}
+
+function del(id){
+  if(!confirm('¿Eliminar este registro?'))return;
+  regs=regs.filter(r=>r.id!==id);
+  save();
+  deleteFromSheets(id);
+  renderHist();
+}
+
+/* ── POR AVIÓN ── */
+function renderPorAvion(){
+  const el=document.getElementById('avion-content');
+  el.innerHTML='<div class="stitle">Consumo acumulado por avión</div>';
+  const totL=regs.reduce((s,r)=>s+(r.litros||0),0);
+  const totI=regs.reduce((s,r)=>s+(r.importe||0),0);
+  el.innerHTML+=`<div class="met-grid" style="margin-bottom:16px">
+    <div class="met"><div class="met-l">TOTAL LITROS</div><div class="met-v g">${fnum(totL,1)} L</div></div>
+    <div class="met"><div class="met-l">TOTAL GASTADO</div><div class="met-v g">${fmon(totI)}</div></div>
+    <div class="met"><div class="met-l">CARGAS</div><div class="met-v">${regs.length}</div></div>
+  </div>`;
+  AVIONES.forEach(mat=>{
+    const rs=regs.filter(r=>r.mat===mat);
+    if(!rs.length){
+      el.innerHTML+=`<div class="avcard" style="display:flex;align-items:center;justify-content:space-between">
+        <div>${badge(mat)}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">sin cargas</div>
+      </div>`;return;
+    }
+    const lit=rs.reduce((s,r)=>s+(r.litros||0),0);
+    const imp=rs.reduce((s,r)=>s+(r.importe||0),0);
+    const pct=totL>0?Math.round(lit/totL*100):0;
+    const ultima=rs[0];
+    const pv=rs.filter(r=>r.precio&&r.precio>0);
+    const prom=pv.length?pv.reduce((s,r)=>s+r.precio,0)/pv.length:null;
+    const color=MAT_COLOR[mat]||'#2ecc8a';
+    el.innerHTML+=`<div class="avcard">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
+        <div>${badge(mat)}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">${rs.length} carga${rs.length!==1?'s':''}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+        <div class="met"><div class="met-l">LITROS</div><div class="met-v" style="font-size:14px">${fnum(lit,1)}</div></div>
+        <div class="met"><div class="met-l">IMPORTE</div><div class="met-v" style="font-size:14px;color:var(--green)">${fmon(imp)}</div></div>
+        <div class="met"><div class="met-l">PROM/L</div><div class="met-v" style="font-size:14px">${prom?fmon(prom):'—'}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span style="font-size:10px;color:var(--text3);font-family:var(--mono);white-space:nowrap">${pct}% del total</span>
+      </div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">última: ${ultima.fecha} · ${fnum(ultima.litros,1)} L · ${fmon(ultima.importe)}</div>
+    </div>`;
+  });
+}
+
+/* ── EXPORT ── */
+function exportCSV(){
+  let csv='Fecha,Avión,Litros,Precio/L,Importe,Tipo,Cargó,Observaciones\n';
+  regs.forEach(r=>{csv+=`${r.fecha},"${r.mat}",${r.litros||''},${r.precio||''},${r.importe||''},"${r.tipo||''}","${r.quien||''}","${r.obs||''}"\n`;});
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='alef_combustible.csv';a.click();URL.revokeObjectURL(url);
+}
+
+// Sync al cargar
+syncFromSheets();
+updateBanner();
+</script>
+</body>
+</html>
